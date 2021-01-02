@@ -4,7 +4,7 @@ Example of Python Serverless Telegram bot to be used with <https://vercel.com>
 
 ## Steps
 
-### Add env variable to now sh
+### Add env variable to vercel.com
 
 Add your telegram bot token as `BOT_TOKEN` variable
 
