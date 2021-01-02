@@ -1,0 +1,2 @@
+flask
+python-telegram-bot
