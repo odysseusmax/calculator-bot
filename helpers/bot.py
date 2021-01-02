@@ -1,5 +1,4 @@
-from threading import Thread
-from queue import Queue
+import logging
 
 from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -45,6 +44,7 @@ oprs = (
     "+",
 )
 non_oprs = ("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "(", ")", ".")
+logger = logging.getLogger(__name__)
 
 
 def start_handler(update, context):
@@ -92,19 +92,16 @@ def button_press(update, context):
         callback_query.edit_message_text(
             text=text, reply_markup=InlineKeyboardMarkup(buttons)
         )
-    except Exception:
+    except Exception as e:
+        logger.info(e)
         pass
 
 
-def get_update_queue(bot):
-    """Create dispatcher instances"""
-    update_queue = Queue()
-    dispatcher = Dispatcher(bot, update_queue)
+def get_dispatcher(bot):
+    """Create and return dispatcher instances"""
+    dispatcher = Dispatcher(bot, None, workers=0)
 
     dispatcher.add_handler(CommandHandler("start", start_handler))
     dispatcher.add_handler(CallbackQueryHandler(button_press))
 
-    thread = Thread(target=dispatcher.start, name="dispatcher")
-    thread.start()
-
-    return update_queue
+    return dispatcher
