@@ -1,4 +1,5 @@
 import logging
+import re
 
 from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -37,57 +38,59 @@ buttons = [
         InlineKeyboardButton("+", callback_data="+"),
     ],
 ]
-oprs = (
-    "/",
-    "*",
-    "-",
-    "+",
-)
-non_oprs = ("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "(", ")", ".")
+banner = "{:.^34}".format(" Calculator by @odbots ")
 logger = logging.getLogger(__name__)
 
 
 def start_handler(update, context):
     """Send a message when the command /start is issued."""
-    text = "<" + " " * 78 + ">"
     update.message.reply_text(
-        text=text, reply_markup=InlineKeyboardMarkup(buttons), quote=True
+        text=banner, reply_markup=InlineKeyboardMarkup(buttons), quote=True
     )
+
+
+def calcExpression(text):
+    try:
+        return float(eval(text))
+    except (SyntaxError, ZeroDivisionError):
+        return ""
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        return ""
 
 
 def button_press(update, context):
     """Function to handle the button press"""
     callback_query = update.callback_query
     callback_query.answer()
-    text = (
-        callback_query.message.text.replace("<", "").replace(">", "").replace(" ", "")
-    )
+    text = callback_query.message.text.split("\n")[0].strip().split("=")[0].strip()
+    text = '' if banner in text else text
     data = callback_query.data
-    d = "<" + " " * 78 + ">"
-    try:
-        if (text == "") or ("Divisionbyzero" in text) or ("Invalidsyntax" in text):
-            text = ""
-        elif ("=" in text) and data in oprs:
-            text = text.split("=")[-1]
-        elif ("=" in text) and (data in non_oprs):
-            text = ""
+    inpt = text + data
+    result = ''
+    if data == "=" and text:
+        result = calcExpression(text)
+        text = ""
+    elif data == "DEL" and text:
+        text = text[:-1]
+    elif data == "AC":
+        text = ""
+    else:
+        dot_dot_check = re.findall(r"(\d*\.\.|\d*\.\d+\.)", inpt)
+        opcheck = re.findall(r"([*/\+-]{2,})", inpt)
+        if not dot_dot_check and not opcheck:
+            strOperands = re.findall(r"(\.\d+|\d+\.\d+|\d+)", inpt)
+            if strOperands:
+                text += data
+                result = calcExpression(text)
 
-        if data == "DEL":
-            text = text[:-1]
-            if text == "":
-                text = d
-        elif (data == "AC") or (text == "" and ((data in oprs) or (data == "="))):
-            text = d
-        elif data == "=":
-            text = text + " = " + str(eval(text))
+    text = f"{text:<50}"
+    if result:
+        if text:
+            text += f"\n{result:>50}"
         else:
-            text = text + data
-    except ZeroDivisionError:
-        text = "Division by zero"
-    except (SyntaxError, TypeError):
-        text = "Invalid syntax"
-
-    text = text + d[len(text):]
+            text = result
+    text += '\n\n' + banner
     try:
         callback_query.edit_message_text(
             text=text, reply_markup=InlineKeyboardMarkup(buttons)
