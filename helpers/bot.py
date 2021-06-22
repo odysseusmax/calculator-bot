@@ -54,6 +54,8 @@ def calcExpression(text):
         return float(eval(text))
     except (SyntaxError, ZeroDivisionError):
         return ""
+    except TypeError:
+        return float(eval(text.replace('(', '*(')))
     except Exception as e:
         logger.error(e, exc_info=True)
         return ""
